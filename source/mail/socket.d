@@ -78,7 +78,7 @@ public:
             {
                 if (_sock !is null)
                 {
-                    delete _sock;
+                    _sock.destroy();
                     _sock = null;
                 }
                 _sock = new TcpSocket(ai[0].addressFamily);

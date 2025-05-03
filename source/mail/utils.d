@@ -131,63 +131,65 @@ ubyte[] removeAll(ubyte[] src, ubyte val)
 
 SysTime parseDate(in string src, in SysTime fail = Clock.currTime)
 {
-    import std.ascii : isDigit;
+    try
+    {
+        import std.ascii : isDigit;
 
-    DateTime dt;
-    auto tz = new immutable SimpleTimeZone(0.minutes);
+        DateTime dt;
+        auto tz = new immutable SimpleTimeZone(0.minutes);
 
-    scope (failure)
+        auto l = src.findSplitAfter(",")[1].strip().toUpper;
+
+        uint x = l[1].isDigit ? 2 : 1;
+
+        dt.day = l[0 .. x].to!int;
+
+        l = l[++x .. $];
+
+        dt.month  = cast(Month)(months.countUntil(l[0 .. 3]) + 1);
+        dt.year   = l[ 4 .. 8].to!int;
+        dt.hour   = l[ 9 .. 11].to!int;
+        dt.minute = l[12 .. 14].to!int;
+        dt.second = l[15 .. 17].to!int;
+        int z = 0;
+
+        if (l.length > 18)
+        {
+            auto tmp = l[18 .. $];
+
+            switch (tmp)
+            {
+                case "UT", "UTC", "GMT":
+                    break;
+                default:
+                    auto sign = +1;
+                    if (tmp[0] == '-')
+                    {
+                        sign = -1;
+                    }
+
+                    if (tmp[0] == '-' || tmp[0] == '+')
+                    {
+                        tmp = tmp[1 .. $];
+                    }
+
+                    if (tmp.length == 4)
+                    {
+                        auto tzH = tmp[0 .. 2].to!int;
+                        auto tzM = tmp[2 .. 4].to!int;
+
+                        return SysTime(dt, new immutable SimpleTimeZone(((tzH * 60 + tzM) * sign).minutes));
+                    }
+                    break;
+            }
+        }
+
+        return SysTime(dt, tz);
+    }
+    catch (Exception e)
     {
         return fail;
     }
-
-    auto l = src.findSplitAfter(",")[1].strip().toUpper;
-
-    uint x = l[1].isDigit ? 2 : 1;
-
-    dt.day = l[0 .. x].to!int;
-
-    l = l[++x .. $];
-
-    dt.month  = cast(Month)(months.countUntil(l[0 .. 3]) + 1);
-    dt.year   = l[ 4 .. 8].to!int;
-    dt.hour   = l[ 9 .. 11].to!int;
-    dt.minute = l[12 .. 14].to!int;
-    dt.second = l[15 .. 17].to!int;
-    int z = 0;
-
-    if (l.length > 18)
-    {
-        auto tmp = l[18 .. $];
-
-        switch (tmp)
-        {
-        case "UT", "UTC", "GMT":
-            break;
-        default:
-            auto sign = +1;
-            if (tmp[0] == '-')
-            {
-                sign = -1;
-            }
-
-            if (tmp[0] == '-' || tmp[0] == '+')
-            {
-                tmp = tmp[1 .. $];
-            }
-
-            if (tmp.length == 4)
-            {
-                auto tzH = tmp[0 .. 2].to!int;
-                auto tzM = tmp[2 .. 4].to!int;
-
-                return SysTime(dt, new immutable SimpleTimeZone(((tzH * 60 + tzM) * sign).minutes));
-            }
-            break;
-        }
-    }
-
-    return SysTime(dt, tz);
 }
 ///
 unittest
